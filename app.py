@@ -1,5 +1,5 @@
 from flask import Flask, abort
-from flask_restx import Api, Resource
+from flask_restx import Api, Resource, fields
 from marshmallow import ValidationError
 
 from models import Song, SongSchema
@@ -7,6 +7,11 @@ from models import Song, SongSchema
 #================================================================
 app = Flask(__name__)
 api = Api(app)
+
+song_model = api.model('Song', {    'band_name':fields.String(required=True),
+                                    'album_name':fields.String(required=True),
+                                    'nr':fields.Integer(required=True),
+                                    'title':fields.String(required=True)})
 
 songs = list()
 #songs.append(Song("Ne Obliviscaris", "Portal Of I", 1, "Tapestry Of The Starless Abstr"))
@@ -30,6 +35,7 @@ def find_song_in_database(*, song=False, song_id=-1):
 #--------------------------------
 @api.route('/songs')
 class SongsAll(Resource):
+    @api.response(200, 'Success - Songs is loaded')
     def get(self):
         schema = SongSchema(many=True)
         result = schema.dump(songs)
@@ -37,6 +43,10 @@ class SongsAll(Resource):
         return result
 
     #--------------------------------
+    @api.response(201, 'Created - Song is added to database')
+    @api.response(400, 'Bad Request - Request is not complete or is incorrect')
+    @api.response(409, 'Conflict - Song is already in database')
+    @api.expect(song_model, validate=True)
     def post(self):
         try:
             result = SongSchema().load(api.payload)
@@ -52,6 +62,8 @@ class SongsAll(Resource):
 #--------------------------------
 @api.route('/songs/<int:song_id>')
 class SongsWithID(Resource):
+    @api.response(200, 'Success - Song is loaded')
+    @api.response(409, 'Conflict - Song is already in database')
     def get(self, song_id):
         schema  = SongSchema()
         song    = find_song_in_database(song_id=song_id)
@@ -63,12 +75,16 @@ class SongsWithID(Resource):
             return {'result': 'Song is not find in database'}, 404
 
     #--------------------------------
+    @api.expect(song_model, validate=True)
+    @api.response(200, 'Success - Song is modified')
+    @api.response(400, 'Bad Request - Request is not complete or is incorrect')
+    @api.response(440, 'Not Found - Song ID is not found')
     def put(self, song_id):
         schema  = SongSchema()
         song    = find_song_in_database(song_id=song_id)
 
         if not song:
-            return {'result': 'Song is not find in database'}, 404
+            return {'result': 'Song is not found in database'}, 404
         else:
             try:
                 result = schema.load(api.payload)
@@ -79,6 +95,8 @@ class SongsWithID(Resource):
             return {'result': 'Song is modified'}
 
     #--------------------------------
+    @api.response(200, 'Success - Song is removed')
+    @api.response(440, 'Not Found - Song ID is not found')
     def delete(self, song_id):
         if find_song_in_database(song_id=song_id):
             songs.pop(song_id)
