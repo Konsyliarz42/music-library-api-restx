@@ -67,17 +67,17 @@ class TestGetResponse(unittest.TestCase):
         assert response.status_code == 409
 
     
-    def test_post_song_conflict(self):
+    def test_post_song_bad_request(self):
         song = {    'band_name':    'Nachtblut',
                     'album_name':   'Vanitas',
                     'title':        "Das Puppenhaus"   }
 
         response = requests.post(local, json=song)
 
-        assert response.status_code == 409
+        assert response.status_code == 400
 
 
-    def test_post_song_bad_request(self):
+    def test_post_song_bad_request2(self):
         song = {    'band_name':    'Nachtblut',
                     'album_name':   'Vanitas',
                     'nr':           'x',
@@ -100,7 +100,7 @@ class TestGetResponse(unittest.TestCase):
         assert response.status_code == 200
 
 
-    def test_put_song_conflict(self):
+    def test_put_song_bad_request(self):
         song_id         = len(requests.get(local).json()) - 1
         modification    = { 'band_name':    'Nachtblut',
                             'album_name':   'Vanitas',
@@ -108,10 +108,10 @@ class TestGetResponse(unittest.TestCase):
 
         response = requests.put(f"{local}/{song_id}", json=modification)
 
-        assert response.status_code == 409
+        assert response.status_code == 400
 
 
-    def test_put_song_bad_request(self):
+    def test_put_song_bad_request2(self):
         song_id         = len(requests.get(local).json()) - 1
         modification    = { 'band_name':    'Nachtblut',
                             'album_name':   'Vanitas',
@@ -127,7 +127,7 @@ class TestGetResponse(unittest.TestCase):
         song_id     = len(requests.get(local).json()) - 1
         response    = requests.delete(f"{local}/{song_id}")
 
-        assert response.status_code == 204
+        assert response.status_code == 200
 
 
     def test_delete_song_out_of_range(self):

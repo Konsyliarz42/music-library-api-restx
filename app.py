@@ -1,82 +1,90 @@
-from flask import Flask, jsonify, request
-from flask_restx import Api, Resource, abort, fields
+from flask import Flask, abort
+from flask_restx import Api, Resource
+from marshmallow import ValidationError
 
-from models import Song
+from models import Song, SongSchema
 
 #================================================================
 app = Flask(__name__)
 api = Api(app)
 
-songs = [
-            Song('Ne Obliviscaris', 'Portal Of I', 4, 'Forget Not'),
-            Song('Ne Obliviscaris', 'Citadel', 4, 'Pyrrhic'),
-            Song('Ne Obliviscaris', 'Urn', 4, 'Eurie')
-        ]
-
-for i in range(len(songs)):
-    songs[i] = songs[i].serialize
-
-songs.clear()
+songs = list()
+#songs.append(Song("Ne Obliviscaris", "Portal Of I", 1, "Tapestry Of The Starless Abstr"))
 
 #--------------------------------
-def check_id(song_id):
-    if song_id > len(songs) - 1:
+def find_song_in_database(*, song=False, song_id=-1):
+    if not songs:
         return False
-    return True
+
+    if song:
+        return song in songs
+
+    if song_id >= 0:
+        try:
+            return songs[song_id]
+        except:
+            return False
+
+    return False
 
 #--------------------------------
 @api.route('/songs')
 class SongsAll(Resource):
     def get(self):
-        return jsonify(songs)
+        schema = SongSchema(many=True)
+        result = schema.dump(songs)
 
+        return result
+
+    #--------------------------------
     def post(self):
         try:
-            data = request.get_json()
-            song = Song(data['band_name'], data['album_name'], int(data['nr']), data['title']).serialize
-        except ValueError:
-            abort(400, message="Nr of a song in album is not a number")
-        except KeyError:
-            abort(409, message="Resource is not complete")
-        else:
-            if song in songs:
-                abort(409)
-            else:
-                songs.append(song)
-                return data, 201
+            result = SongSchema().load(api.payload)
+        except ValidationError as error:
+            return error.messages, 400
 
+        if not find_song_in_database(song=result):
+            songs.append(result)
+            return {'result': 'Song is added'}, 201
+        else:
+            return {'result': 'Song is already in database'}, 409
 
 #--------------------------------
 @api.route('/songs/<int:song_id>')
 class SongsWithID(Resource):
     def get(self, song_id):
-        if check_id(song_id):
-            return songs[song_id]
-        else:
-            abort(404)
+        schema  = SongSchema()
+        song    = find_song_in_database(song_id=song_id)
 
+        if song:
+            result = schema.dump(song)
+            return result
+        else:
+            return {'result': 'Song is not find in database'}, 404
+
+    #--------------------------------
     def put(self, song_id):
-        try:
-            data = request.get_json()
-            song = Song(data['band_name'], data['album_name'], int(data['nr']), data['title']).serialize
-        except ValueError:
-            abort(400, message="Nr of a song in album is not a number")
-        except KeyError:
-            abort(409, message="Resource is not complete")
-        else:
-            if check_id(song_id):
-                songs[song_id] = song
-                return data
-            else:
-                abort(404)
+        schema  = SongSchema()
+        song    = find_song_in_database(song_id=song_id)
 
+        if not song:
+            return {'result': 'Song is not find in database'}, 404
+        else:
+            try:
+                result = schema.load(api.payload)
+            except ValidationError as error:
+                return error.messages, 400
+
+            songs[song_id] = result
+            return {'result': 'Song is modified'}
+
+    #--------------------------------
     def delete(self, song_id):
-        if check_id(song_id):
+        if find_song_in_database(song_id=song_id):
             songs.pop(song_id)
-            return {}, 204
+            return {'result': 'Song is removed'}
         else:
             abort(404)
-
 
 #================================================================
 if __name__ == "__main__":
