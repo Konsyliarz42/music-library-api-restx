@@ -32,17 +32,10 @@ class TestGetResponse(unittest.TestCase):
 
 
     def test_get_song_by_id(self):
-        song_id     = random.randint(0, len(requests.get(local).json()) - 1)
+        song_id     = requests.get(local).json()[random.randint(0, len(requests.get(local).json()) - 1)]['song_id']
         response    = requests.get(f"{local}/{song_id}")
 
         assert response.status_code == 200
-
-
-    def test_get_song_by_id_out_of_range(self):
-        song_id     = len(requests.get(local).json())
-        response    = requests.get(f"{local}/{song_id}")
-
-        assert response.status_code == 404
 
     #----------------------------
     def test_post_song_first_time(self):
@@ -89,7 +82,7 @@ class TestGetResponse(unittest.TestCase):
 
     #----------------------------
     def test_put_song(self):
-        song_id         = len(requests.get(local).json()) - 1
+        song_id         = requests.get(local).json()[len(requests.get(local).json()) - 1]['song_id']
         modification    = { 'band_name':    'Nachtblut',
                             'album_name':   'Vanitas',
                             'nr':           2,
@@ -101,7 +94,7 @@ class TestGetResponse(unittest.TestCase):
 
 
     def test_put_song_bad_request(self):
-        song_id         = len(requests.get(local).json()) - 1
+        song_id         = requests.get(local).json()[len(requests.get(local).json()) - 1]['song_id']
         modification    = { 'band_name':    'Nachtblut',
                             'album_name':   'Vanitas',
                             'title':        "Vanitas"  }
@@ -112,7 +105,7 @@ class TestGetResponse(unittest.TestCase):
 
 
     def test_put_song_bad_request2(self):
-        song_id         = len(requests.get(local).json()) - 1
+        song_id         = requests.get(local).json()[len(requests.get(local).json()) - 1]['song_id']
         modification    = { 'band_name':    'Nachtblut',
                             'album_name':   'Vanitas',
                             'nr':           'x',
@@ -124,17 +117,10 @@ class TestGetResponse(unittest.TestCase):
 
     #----------------------------
     def test_put_song_and_delete_song(self):
-        song_id     = len(requests.get(local).json()) - 1
+        song_id     = requests.get(local).json()[len(requests.get(local).json()) - 1]['song_id']
         response    = requests.delete(f"{local}/{song_id}")
 
         assert response.status_code == 200
-
-
-    def test_delete_song_out_of_range(self):
-        song_id     = len(requests.get(local).json())
-        response    = requests.delete(f"{local}/{song_id}")
-
-        assert response.status_code == 404
 
 #================================================================
 if __name__ == '__main__':

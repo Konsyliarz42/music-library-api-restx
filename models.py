@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, post_load
+from uuid import uuid4
 
 #================================================================
 class Song():
@@ -7,6 +8,13 @@ class Song():
         self.album_name = album_name
         self.nr         = nr
         self.title      = title
+        self.song_id    = int(uuid4())
+
+        self._links = {
+            'self': f"http://localhost:5000/songs/{self.song_id}",
+            'collection': "http://localhost:5000/songs"
+        }
+
 
     #--------------------------------
     def __repr__(self):
@@ -27,6 +35,8 @@ class SongSchema(Schema):
     album_name  = fields.String(required=True)
     nr          = fields.Integer(required=True)
     title       = fields.String(required=True)
+    song_id     = fields.Integer()
+    _links      = fields.Dict()
 
     @post_load
     def make_song(self, data, **kwargs):

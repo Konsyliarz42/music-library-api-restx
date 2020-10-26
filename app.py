@@ -25,10 +25,10 @@ def find_song_in_database(*, song=False, song_id=-1):
         return song in songs
 
     if song_id >= 0:
-        try:
-            return songs[song_id]
-        except:
-            return False
+        for song in songs:
+            if song.song_id == song_id:
+                return song
+
 
     return False
 
@@ -88,18 +88,21 @@ class SongsWithID(Resource):
         else:
             try:
                 result = schema.load(api.payload)
+                result.song_id = song_id
             except ValidationError as error:
                 return error.messages, 400
 
-            songs[song_id] = result
+            songs[songs.index(song)] = result
             return {'result': 'Song is modified'}
 
     #--------------------------------
     @api.response(200, 'Success - Song is removed')
     @api.response(440, 'Not Found - Song ID is not found')
     def delete(self, song_id):
-        if find_song_in_database(song_id=song_id):
-            songs.pop(song_id)
+        song = find_song_in_database(song_id=song_id)
+
+        if song:
+            songs.pop(songs.index(song))
             return {'result': 'Song is removed'}
         else:
             abort(404)
